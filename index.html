@@ -1425,17 +1425,17 @@ function renderHome(){
       <div class="hero-date">${endDateStr}</div>
       <div class="hero-slogan">${escapeHtml(settings.slogan)}</div>
       <div class="hero-countdown">
-        <div class="countdown-item"><div class="countdown-num">${years}</div><div class="countdown-label">年</div></div>
-        <div class="countdown-item"><div class="countdown-num">${months}</div><div class="countdown-label">月</div></div>
-        <div class="countdown-item"><div class="countdown-num">${days}</div><div class="countdown-label">天</div></div>
-        <div class="countdown-item"><div class="countdown-num">${String(diffHours).padStart(2,'0')}</div><div class="countdown-label">时</div></div>
-        <div class="countdown-item"><div class="countdown-num">${String(diffMins).padStart(2,'0')}</div><div class="countdown-label">分</div></div>
-        <div class="countdown-item"><div class="countdown-num">${String(diffSecs).padStart(2,'0')}</div><div class="countdown-label">秒</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdYears">${years}</div><div class="countdown-label">年</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdMonths">${months}</div><div class="countdown-label">月</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdDays">${days}</div><div class="countdown-label">天</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdHours">${String(diffHours).padStart(2,'0')}</div><div class="countdown-label">时</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdMins">${String(diffMins).padStart(2,'0')}</div><div class="countdown-label">分</div></div>
+        <div class="countdown-item"><div class="countdown-num" id="cdSecs">${String(diffSecs).padStart(2,'0')}</div><div class="countdown-label">秒</div></div>
       </div>
       <div class="hero-progress">
         <span style="font-size:12px">六年进度</span>
-        <div class="hero-progress-bar"><div class="hero-progress-fill" style="width:${progress.toFixed(1)}%"></div></div>
-        <span class="hero-progress-text">${progress.toFixed(1)}%</span>
+        <div class="hero-progress-bar"><div class="hero-progress-fill" id="heroProgressFill" style="width:${progress.toFixed(1)}%"></div></div>
+        <span class="hero-progress-text" id="heroProgressText">${progress.toFixed(1)}%</span>
       </div>
     </div>
 
@@ -2171,8 +2171,37 @@ function checkPasswordAndRender(){
   }
 })();
 
+function updateCountdown(){
+  const now = new Date();
+  const TARGET_DATE = getEndDate();
+  const START_DATE = getStartDate();
+  const totalMs = TARGET_DATE - START_DATE;
+  const elapsedMs = now - START_DATE;
+  const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
+  const diffMs = TARGET_DATE - now;
+  const diffDays = Math.max(0, Math.floor(diffMs / 86400000));
+  const diffHours = Math.max(0, Math.floor((diffMs % 86400000) / 3600000));
+  const diffMins = Math.max(0, Math.floor((diffMs % 3600000) / 60000));
+  const diffSecs = Math.max(0, Math.floor((diffMs % 60000) / 1000));
+  const years = Math.floor(diffDays / 365);
+  const months = Math.floor((diffDays % 365) / 30);
+  const days = diffDays % 30;
+
+  const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('cdYears', years);
+  setText('cdMonths', months);
+  setText('cdDays', days);
+  setText('cdHours', String(diffHours).padStart(2, '0'));
+  setText('cdMins', String(diffMins).padStart(2, '0'));
+  setText('cdSecs', String(diffSecs).padStart(2, '0'));
+
+  const pf = document.getElementById('heroProgressFill');
+  if (pf) pf.style.width = progress.toFixed(1) + '%';
+  setText('heroProgressText', progress.toFixed(1) + '%');
+}
+
 setInterval(()=>{
-  if(currentPage==='home' && !settingsOpen) renderHome();
+  if(currentPage==='home') updateCountdown();
 },1000);
 </script>
 </body>
