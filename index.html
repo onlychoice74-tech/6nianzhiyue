@@ -2172,7 +2172,7 @@ function checkPasswordAndRender(){
 })();
 
 setInterval(()=>{
-  if(currentPage==='home') renderHome();
+  if(currentPage==='home' && !settingsOpen) renderHome();
 },1000);
 </script>
 </body>
