@@ -947,6 +947,33 @@ textarea{min-height:80px}
 </head>
 <body>
 
+<!-- Dynamic Password Gate -->
+<div class="pw-overlay hidden" id="dpOverlay">
+  <div class="pw-box">
+    <div class="pw-icon">🔐</div>
+    <div class="pw-title">动态密码</div>
+    <div class="pw-subtitle" id="dpHint">请输入今日访问密码（日期末位对应）</div>
+    <input type="password" class="pw-input" id="dpInput" maxlength="20" placeholder="输入动态密码" autocomplete="off">
+    <div class="pw-error" id="dpError"></div>
+    <button class="pw-btn" id="dpSubmitBtn">确认</button>
+  </div>
+</div>
+
+<!-- Logout Confirm Overlay -->
+<div class="pw-overlay hidden" id="logoutOverlay">
+  <div class="pw-box">
+    <div class="pw-icon">⚠️</div>
+    <div class="pw-title">退出登录</div>
+    <div class="pw-subtitle">请输入「确定退出」以确认</div>
+    <input type="text" class="pw-input" id="logoutInput" maxlength="4" placeholder="确定退出" autocomplete="off" style="letter-spacing:0">
+    <div class="pw-error" id="logoutError"></div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="pw-btn" id="logoutCancelBtn" style="flex:1;background:var(--border);color:var(--text-primary)">取消</button>
+      <button class="pw-btn" id="logoutConfirmBtn" style="flex:1">确认退出</button>
+    </div>
+  </div>
+</div>
+
 <!-- Auth Page -->
 <div class="pw-overlay" id="authPage">
   <div class="pw-box" style="max-width:360px">
@@ -1259,17 +1286,44 @@ function saveLocal(){
   localStorage.setItem('nianzhiyue_data', JSON.stringify(appData));
 }
 
-// Logout
-document.getElementById('logoutBtn').addEventListener('click', async function(){
+// Logout - show confirm overlay
+document.getElementById('logoutBtn').addEventListener('click', function(){
+  const overlay = document.getElementById('logoutOverlay');
+  const input = document.getElementById('logoutInput');
+  const error = document.getElementById('logoutError');
+  overlay.classList.remove('hidden');
+  input.value = '';
+  error.textContent = '';
+  input.focus();
+});
+
+// Logout confirm overlay events
+document.getElementById('logoutCancelBtn').addEventListener('click', function(){
+  document.getElementById('logoutOverlay').classList.add('hidden');
+});
+document.getElementById('logoutConfirmBtn').addEventListener('click', async function(){
+  const input = document.getElementById('logoutInput');
+  const error = document.getElementById('logoutError');
+  if(input.value !== '确定退出'){
+    error.textContent = '输入不正确，请输入「确定退出」';
+    input.value = '';
+    input.focus();
+    return;
+  }
+  document.getElementById('logoutOverlay').classList.add('hidden');
   await supabase.auth.signOut();
   currentUser = null;
   appData = {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0};
   settings = loadSettings();
   settingsOpen = false;
+  sessionStorage.removeItem('nianzhiyue_unlocked');
   document.querySelector('.app').style.display = 'none';
   authPage.classList.remove('hidden');
   showAuthPage();
   document.querySelector('.app').style.display = '';
+});
+document.getElementById('logoutInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') document.getElementById('logoutConfirmBtn').click();
 });
 
 // ── Settings Layer ──
@@ -1652,12 +1706,13 @@ function formatMoneyFull(n){
 
 // ── Checkin Page ──
 let checkinMood = 3;
-let checkinHabits = {sport:false,study:false};
+let checkinHabits = {sport:false,study:false,play:false,work:false,trip:false};
 
 function renderCheckin(){
   const today = todayStr();
   const existing = appData.checkins[today];
   const isChecked = !!existing;
+  if(!isChecked) checkinHabits = {sport:false,study:false,play:false,work:false,trip:false};
   const isFirstCheckin = Object.keys(appData.checkins).length === 0;
   const totalDeposit = calcTotalDeposit();
 
@@ -1712,14 +1767,17 @@ function renderCheckin(){
         <div style="font-size:24px;font-weight:700;color:var(--brand-700);margin-top:2px" id="totalDepositDisplay">${formatMoneyFull(totalDeposit)}</div>
       </div>
       <div class="form-group">
-        <div class="form-label">✅ 今日习惯</div>
+        <div class="form-label">✅ 今日状态</div>
         <div class="habit-group" id="habitGroup">
           <button class="habit-chip ${existing&&existing.habits.sport?'checked':''}" data-habit="sport" ${isChecked?'disabled':''}>🏃 运动了</button>
           <button class="habit-chip ${existing&&existing.habits.study?'checked':''}" data-habit="study" ${isChecked?'disabled':''}>📚 学习了</button>
+          <button class="habit-chip ${existing&&existing.habits.play?'checked':''}" data-habit="play" ${isChecked?'disabled':''}>🎮 游玩了</button>
+          <button class="habit-chip ${existing&&existing.habits.work?'checked':''}" data-habit="work" ${isChecked?'disabled':''}>💼 工作了</button>
+          <button class="habit-chip ${existing&&existing.habits.trip?'checked':''}" data-habit="trip" ${isChecked?'disabled':''}>✈️ 出差了</button>
         </div>
       </div>
       <button class="btn btn-primary" id="submitBtn" ${isChecked?'disabled':''}>${isChecked?'✅ 今日已打卡':'📝 完成今日打卡'}</button>
-      ${isChecked?'<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px">今日已完成打卡，明天再来吧</p>':''}
+      ${isChecked?'<p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px">今日已完成打卡，明天再来吧</p><button class="btn btn-sm" id="cancelCheckinBtn" style="display:block;margin:12px auto 0;background:var(--danger);color:#fff;border:none;padding:8px 20px;border-radius:var(--radius);cursor:pointer">↩ 取消今日打卡</button>':''}
     </div>
   `;
 
@@ -1759,6 +1817,11 @@ function renderCheckin(){
     });
 
     document.getElementById('submitBtn').addEventListener('click',submitCheckin);
+  } else {
+    document.getElementById('cancelCheckinBtn').addEventListener('click',function(){
+      if(!confirm('确定取消今日打卡记录吗？此操作不可恢复。')) return;
+      cancelCheckin(today);
+    });
   }
 }
 
@@ -2001,10 +2064,13 @@ function viewDiaryDetail(date){
       ${data.tough?`<div style="margin-top:14px"><div class="form-label">💪 一件难过/挑战的事</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.tough)}</p></div>`:''}
       ${data.think?`<div style="margin-top:14px"><div class="form-label">💭 今日思考</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.think)}</p></div>`:''}
       <div style="margin-top:14px">
-        <div class="form-label">✅ 今日习惯</div>
+        <div class="form-label">✅ 今日状态</div>
         <div class="habit-group">
           <span class="habit-chip ${data.habits.sport?'checked':''}" style="pointer-events:none">🏃 运动了</span>
           <span class="habit-chip ${data.habits.study?'checked':''}" style="pointer-events:none">📚 学习了</span>
+          <span class="habit-chip ${data.habits.play?'checked':''}" style="pointer-events:none">🎮 游玩了</span>
+          <span class="habit-chip ${data.habits.work?'checked':''}" style="pointer-events:none">💼 工作了</span>
+          <span class="habit-chip ${data.habits.trip?'checked':''}" style="pointer-events:none">✈️ 出差了</span>
         </div>
       </div>
     </div>
@@ -2027,6 +2093,23 @@ function deleteCheckin(date){
   saveData(appData);
   showToast('已删除 '+date,'success');
   renderDiary();
+}
+
+function cancelCheckin(date){
+  delete appData.checkins[date];
+  appData.totalDeposit = calcTotalDeposit();
+  appData.totalCount = Object.keys(appData.checkins).length;
+  let streak = 0;
+  const d = new Date();
+  for(let i=0;i<1000;i++){
+    const s = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(appData.checkins[s]){streak++}else break;
+    d.setDate(d.getDate()-1);
+  }
+  appData.streak = streak;
+  saveData(appData);
+  showToast('已取消今日打卡','success');
+  renderCheckin();
 }
 
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
@@ -2158,8 +2241,57 @@ function checkPasswordAndRender(){
   }
 }
 
+// ── Dynamic Password Gate ──
+function getDynamicPassword(){
+  const PW_MAP = ['Alm2026','AlmLove','Alm6350','Alm8241','Alm3521','Alm0817','Alm0122','Alm1005','Alm0207','Alm1103'];
+  const today = new Date();
+  const lastDigit = today.getDate() % 10;
+  return PW_MAP[lastDigit];
+}
+
+function showDynamicPasswordGate(callback){
+  const overlay = document.getElementById('dpOverlay');
+  const input = document.getElementById('dpInput');
+  const error = document.getElementById('dpError');
+  overlay.classList.remove('hidden');
+  input.value = '';
+  error.textContent = '';
+
+  function tryUnlock(){
+    if(input.value === getDynamicPassword()){
+      sessionStorage.setItem('nianzhiyue_dp_verified', '1');
+      overlay.classList.add('hidden');
+      callback();
+    } else {
+      error.textContent = '动态密码错误，请重试';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  document.getElementById('dpSubmitBtn').onclick = tryUnlock;
+  input.onkeydown = function(e){ if(e.key==='Enter') tryUnlock(); };
+  input.focus();
+}
+
 // ── Init ──
 (async function init(){
+  if(!sessionStorage.getItem('nianzhiyue_dp_verified')){
+    showDynamicPasswordGate(function(){
+      if(!supabaseReady){ showAuthPage(); return; }
+      (async function(){
+        const {data: {session}} = await supabase.auth.getSession();
+        if(session){
+          currentUser = session.user;
+          await initAppAfterLogin();
+          checkPasswordAndRender();
+        } else {
+          showAuthPage();
+        }
+      })();
+    });
+    return;
+  }
   if(!supabaseReady){ showAuthPage(); return; }
   const {data: {session}} = await supabase.auth.getSession();
   if(session){
