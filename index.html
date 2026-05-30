@@ -955,7 +955,7 @@ textarea{min-height:80px}
     <div class="pw-subtitle">输入邮箱，验证码登录</div>
     <input type="email" class="pw-input" id="authEmail" placeholder="输入邮箱地址" autocomplete="email" style="letter-spacing:0">
     <div class="pw-code-row hidden" id="codeSection">
-      <input type="text" class="pw-input pw-code-input" id="authCode" maxlength="6" placeholder="000000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
+      <input type="text" class="pw-input pw-code-input" id="authCode" maxlength="8" placeholder="00000000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
     </div>
     <div class="pw-error" id="authError"></div>
     <button class="pw-btn" id="authBtn" style="width:100%">发送验证码</button>
@@ -1203,7 +1203,7 @@ authBtn.addEventListener('click', async function(){
   } else {
     // Verify OTP
     const code = authCode.value.trim();
-    if(!code || code.length < 6){ authError.textContent = '请输入6位验证码'; return; }
+    if(!code || code.length < 8){ authError.textContent = '请输入8位验证码'; return; }
     authBtn.disabled = true;
     authBtn.textContent = '验证中...';
     const {data, error} = await supabase.auth.verifyOtp({email, token: code, type: 'email'});
