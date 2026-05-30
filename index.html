@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>6年之约 · 六年打卡</title>
 <style>
 :root {
@@ -938,7 +941,7 @@ textarea{min-height:80px}
 .pw-btn:hover{background:var(--brand-800)}
 .pw-btn:active{transform:scale(.97)}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -990,7 +993,24 @@ textarea{min-height:80px}
 </div>
 
 <script>
+// ── Version & Cache Check ──
+const APP_VERSION = '2.0.0';
+(function(){
+  const cachedVer = localStorage.getItem('nianzhiyue_version');
+  if(cachedVer && cachedVer !== APP_VERSION){
+    // Version changed, clear stale cache and force reload
+    localStorage.setItem('nianzhiyue_version', APP_VERSION);
+    location.reload(true);
+    return;
+  }
+  localStorage.setItem('nianzhiyue_version', APP_VERSION);
+})();
+
 // ── Supabase Client ──
+if(typeof window.supabase === 'undefined'){
+  document.getElementById('authError') && (document.getElementById('authError').textContent = '加载失败，请检查网络后刷新重试');
+  throw new Error('Supabase SDK load failed');
+}
 const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_FRUTpPxZ5OENXhVBdjhWYA_OE9HWH6V';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -1175,6 +1195,7 @@ function loadData(){
     targetDeposit: 1000000,
     checkins: {},
     totalDeposit: 0,
+    initialDeposit: 0,
     streak: 0,
     totalCount: 0
   };
@@ -1376,7 +1397,7 @@ function renderHome(){
       <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value">${appData.totalCount}</div><div class="stat-label">累计打卡次数</div></div>
       <div class="stat-card clickable" id="depositCard" title="${settings.hideDeposit?'点击显示金额':'点击隐藏金额'}">
         <div class="stat-icon">💰</div>
-        <div class="stat-value">${formatMoney(appData.totalDeposit)}</div>
+        <div class="stat-value">${formatMoney(calcTotalDeposit())}</div>
         <div class="stat-label">累计存款</div>
         ${settings.hideDeposit?'<div class="stat-hint">点击查看</div>':''}
       </div>
@@ -1485,6 +1506,18 @@ function applyTheme(){
   }
 }
 
+// ── Money Helpers ──
+function calcTotalDeposit(){
+  let total = appData.initialDeposit || 0;
+  for(const [date, record] of Object.entries(appData.checkins)){
+    total += (record.deposit || 0) - (record.expense || 0);
+  }
+  return total;
+}
+function formatMoneyFull(n){
+  return '¥' + (n||0).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+
 // ── Checkin Page ──
 let checkinMood = 3;
 let checkinHabits = {sport:false,study:false};
@@ -1493,6 +1526,8 @@ function renderCheckin(){
   const today = todayStr();
   const existing = appData.checkins[today];
   const isChecked = !!existing;
+  const isFirstCheckin = Object.keys(appData.checkins).length === 0;
+  const totalDeposit = calcTotalDeposit();
 
   mainEl.innerHTML = `
     <div class="card">
@@ -1529,8 +1564,20 @@ function renderCheckin(){
         <div class="char-count"><span id="thinkCount">${existing?existing.think.length:0}</span>/500</div>
       </div>
       <div class="form-group">
-        <div class="form-label">💰 当前累计存款(元)</div>
-        <input type="number" id="depositInput" value="${existing?existing.deposit:appData.totalDeposit}" ${isChecked?'disabled':''}>
+        <div class="form-label">💰 初始存款(元)</div>
+        <input type="number" id="initialDepositInput" value="${appData.initialDeposit||''}" placeholder="起始积蓄金额" ${isChecked?'disabled':''}>
+      </div>
+      <div class="form-group">
+        <div class="form-label">📥 今日存款(元)</div>
+        <input type="number" id="depositInput" value="${existing?existing.deposit:''}" placeholder="输入今日存款金额" ${isChecked?'disabled':''}>
+      </div>
+      <div class="form-group">
+        <div class="form-label">📤 今日花销(元)</div>
+        <input type="number" id="expenseInput" value="${existing?existing.expense:''}" placeholder="输入今日花销金额" ${isChecked?'disabled':''}>
+      </div>
+      <div class="form-group" style="background:var(--brand-50);border-radius:var(--radius);padding:12px 14px">
+        <span style="font-size:12px;color:var(--text-muted)">累计存款(元)</span>
+        <div style="font-size:24px;font-weight:700;color:var(--brand-700);margin-top:2px" id="totalDepositDisplay">${formatMoneyFull(totalDeposit)}</div>
       </div>
       <div class="form-group">
         <div class="form-label">✅ 今日习惯</div>
@@ -1559,6 +1606,19 @@ function renderCheckin(){
       el.addEventListener('input',()=>{cnt.textContent=el.value.length});
     });
 
+    // Live update total deposit display
+    function updateTotalDisplay(){
+      const d = parseInt(document.getElementById('depositInput').value)||0;
+      const e = parseInt(document.getElementById('expenseInput').value)||0;
+      const init = parseInt(document.getElementById('initialDepositInput').value)||0;
+      const todayNew = isFirstCheckin ? (init + d - e) : (totalDeposit + d - e - (existing?((existing.deposit||0)-(existing.expense||0)):0));
+      document.getElementById('totalDepositDisplay').textContent = formatMoneyFull(todayNew);
+    }
+    document.getElementById('depositInput').addEventListener('input', updateTotalDisplay);
+    document.getElementById('expenseInput').addEventListener('input', updateTotalDisplay);
+    const initEl = document.getElementById('initialDepositInput');
+    if(initEl) initEl.addEventListener('input', updateTotalDisplay);
+
     document.getElementById('habitGroup').addEventListener('click',function(e){
       const chip = e.target.closest('.habit-chip');
       if(!chip || chip.disabled) return;
@@ -1576,6 +1636,11 @@ function submitCheckin(){
   const tough = document.getElementById('toughInput').value.trim();
   const think = document.getElementById('thinkInput').value.trim();
   const deposit = parseInt(document.getElementById('depositInput').value) || 0;
+  const expense = parseInt(document.getElementById('expenseInput').value) || 0;
+
+  // Save initial deposit
+  const initEl = document.getElementById('initialDepositInput');
+  if(initEl) appData.initialDeposit = parseInt(initEl.value) || 0;
 
   appData.checkins[today] = {
     mood: checkinMood,
@@ -1583,11 +1648,12 @@ function submitCheckin(){
     tough,
     think,
     deposit,
+    expense,
     habits: {...checkinHabits},
     timestamp: Date.now()
   };
 
-  appData.totalDeposit = deposit;
+  appData.totalDeposit = calcTotalDeposit();
   appData.totalCount = Object.keys(appData.checkins).length;
 
   let streak = 0;
@@ -1607,7 +1673,7 @@ function submitCheckin(){
 // ── Progress Page ──
 function renderProgress(){
   const target = appData.targetDeposit;
-  const current = appData.totalDeposit;
+  const current = calcTotalDeposit();
   const remaining = Math.max(0, target - current);
   const progressPct = Math.min(100, (current/target)*100);
 
@@ -1650,13 +1716,13 @@ function renderProgress(){
     const mo = d.getMonth()+1;
     const daysInMonth = new Date(yr,mo,0).getDate();
     let checkedDays = 0;
-    let monthEndDeposit = 0;
+    let monthNet = 0;
     for(let day=1;day<=daysInMonth;day++){
       const s = yr+'-'+String(mo).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      if(appData.checkins[s]){checkedDays++;monthEndDeposit=appData.checkins[s].deposit}
+      if(appData.checkins[s]){checkedDays++;monthNet += (appData.checkins[s].deposit||0)-(appData.checkins[s].expense||0)}
     }
     const rate = daysInMonth>0?Math.round(checkedDays/daysInMonth*100):0;
-    monthlyRows += `<tr><td>${yr}-${String(mo).padStart(2,'0')}</td><td>${checkedDays}/${daysInMonth}</td><td>${rate}%</td><td>${formatMoneyFull(monthEndDeposit)}</td></tr>`;
+    monthlyRows += `<tr><td>${yr}-${String(mo).padStart(2,'0')}</td><td>${checkedDays}/${daysInMonth}</td><td>${rate}%</td><td>${formatMoneyFull(monthNet)}</td></tr>`;
   }
 
   mainEl.innerHTML = `
@@ -1758,7 +1824,7 @@ function renderDiary(){
           <span class="diary-date">${date}</span>
           <span class="diary-mood">${moodEmojis[data.mood]||'😐'}</span>
         </div>
-        <div class="diary-deposit">💰 ${formatMoneyFull(data.deposit)}</div>
+        <div class="diary-deposit">📥 ${formatMoneyFull(data.deposit||0)} ${data.expense?`📤 ${formatMoneyFull(data.expense)}`:'📤 ¥0'} | 净存 ${formatMoneyFull((data.deposit||0)-(data.expense||0))}</div>
         <div class="diary-tags">
           ${data.happy?'<span class="diary-tag">🌟 开心事</span>':''}
           ${data.tough?'<span class="diary-tag">💪 挑战</span>':''}
@@ -1790,12 +1856,15 @@ function viewDiaryDetail(date){
   const moodLabels = {'1':'😄 超棒','2':'😊 不错','3':'😐 一般','4':'😔 不太好','5':'😢 难过'};
   mainEl.innerHTML = `
     <div class="card" style="margin-bottom:16px">
-      <button class="btn btn-sm btn-outline" onclick="renderDiary()" style="margin-bottom:12px">← 返回列表</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn btn-sm btn-outline" onclick="renderDiary()">← 返回列表</button>
+        <button class="btn btn-sm" style="background:var(--danger);color:#fff;border:none" onclick="deleteCheckin('${date}')">🗑 删除此条</button>
+      </div>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:18px;font-weight:700">${date}</span>
         <span style="font-size:24px">${moodLabels[data.mood]||'😐'}</span>
       </div>
-      <div style="margin-top:14px">💰 存款：<strong>${formatMoneyFull(data.deposit)}</strong></div>
+      <div style="margin-top:14px">💰 今日存款：<strong>${formatMoneyFull(data.deposit||0)}</strong> | 今日花销：<strong>${formatMoneyFull(data.expense||0)}</strong> | 净存：<strong>${formatMoneyFull((data.deposit||0)-(data.expense||0))}</strong></div>
       ${data.happy?`<div style="margin-top:14px"><div class="form-label">🌟 一件开心/积极的事</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.happy)}</p></div>`:''}
       ${data.tough?`<div style="margin-top:14px"><div class="form-label">💪 一件难过/挑战的事</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.tough)}</p></div>`:''}
       ${data.think?`<div style="margin-top:14px"><div class="form-label">💭 今日思考</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.think)}</p></div>`:''}
@@ -1808,6 +1877,24 @@ function viewDiaryDetail(date){
       </div>
     </div>
   `;
+}
+
+function deleteCheckin(date){
+  if(!confirm('确定删除 '+date+' 的打卡记录吗？此操作不可恢复。')) return;
+  delete appData.checkins[date];
+  appData.totalDeposit = calcTotalDeposit();
+  appData.totalCount = Object.keys(appData.checkins).length;
+  let streak = 0;
+  const d = new Date();
+  for(let i=0;i<1000;i++){
+    const s = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    if(appData.checkins[s]){streak++}else break;
+    d.setDate(d.getDate()-1);
+  }
+  appData.streak = streak;
+  saveData(appData);
+  showToast('已删除 '+date,'success');
+  renderDiary();
 }
 
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
