@@ -932,7 +932,7 @@ textarea{min-height:80px}
   <div class="pw-box">
     <div class="pw-icon">🔐</div>
     <div class="pw-title">动态密码</div>
-    <div class="pw-subtitle" id="dpHint">请输入今日访问密码（日期末位对应）</div>
+    <div class="pw-subtitle" id="dpHint">因本站用户人数众多，今日起收费2.99元维护网站运营，请前往抖音群聊获取动态密码</div>
     <input type="password" class="pw-input" id="dpInput" maxlength="20" placeholder="输入动态密码" autocomplete="off">
     <div class="pw-error" id="dpError"></div>
     <button class="pw-btn" id="dpSubmitBtn">确认</button>
@@ -2285,6 +2285,24 @@ async function tryRestoreSession(){
 }
 
 (async function init(){
+  const TRIAL_DAYS = 7;
+  const firstVisit = localStorage.getItem('nianzhiyue_first_visit');
+  if(!firstVisit){
+    localStorage.setItem('nianzhiyue_first_visit', todayStr());
+  }
+  const firstDate = new Date(localStorage.getItem('nianzhiyue_first_visit'));
+  const now = new Date();
+  const daysSince = Math.floor((now - firstDate) / 86400000);
+  const remaining = TRIAL_DAYS - daysSince;
+
+  if(daysSince < TRIAL_DAYS){
+    if(!supabaseReady){ showAuthPage(); return; }
+    const ok = await tryRestoreSession();
+    if(ok){ await initAppAfterLogin(); checkPasswordAndRender(); }
+    else showAuthPage();
+    return;
+  }
+
   if(!localStorage.getItem('nianzhiyue_dp_verified')){
     showDynamicPasswordGate(function(){
       if(!supabaseReady){ showAuthPage(); return; }
