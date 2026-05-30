@@ -1242,6 +1242,7 @@ authBtn.addEventListener('click', async function(){
     }
     // Login success
     currentUser = data.user;
+    localStorage.setItem('nianzhiyue_user', JSON.stringify({id: data.user.id, email: email}));
     clearInterval(countdownTimer);
     await initAppAfterLogin();
     checkPasswordAndRender();
@@ -1313,6 +1314,7 @@ document.getElementById('logoutConfirmBtn').addEventListener('click', async func
   document.getElementById('logoutOverlay').classList.add('hidden');
   await supabase.auth.signOut();
   currentUser = null;
+  localStorage.removeItem('nianzhiyue_user');
   appData = {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0};
   settings = loadSettings();
   settingsOpen = false;
@@ -2259,7 +2261,7 @@ function showDynamicPasswordGate(callback){
 
   function tryUnlock(){
     if(input.value === getDynamicPassword()){
-      sessionStorage.setItem('nianzhiyue_dp_verified', '1');
+      localStorage.setItem('nianzhiyue_dp_verified', '1');
       overlay.classList.add('hidden');
       callback();
     } else {
@@ -2275,32 +2277,39 @@ function showDynamicPasswordGate(callback){
 }
 
 // ── Init ──
+async function tryRestoreSession(){
+  const {data: {session}} = await supabase.auth.getSession();
+  if(session){
+    currentUser = session.user;
+    // Refresh persistent backup
+    localStorage.setItem('nianzhiyue_user', JSON.stringify({id: session.user.id, email: session.user.email}));
+    return true;
+  }
+  // Session expired, try persistent user backup
+  const saved = localStorage.getItem('nianzhiyue_user');
+  if(saved){
+    currentUser = JSON.parse(saved);
+    return true;
+  }
+  return false;
+}
+
 (async function init(){
-  if(!sessionStorage.getItem('nianzhiyue_dp_verified')){
+  if(!localStorage.getItem('nianzhiyue_dp_verified')){
     showDynamicPasswordGate(function(){
       if(!supabaseReady){ showAuthPage(); return; }
       (async function(){
-        const {data: {session}} = await supabase.auth.getSession();
-        if(session){
-          currentUser = session.user;
-          await initAppAfterLogin();
-          checkPasswordAndRender();
-        } else {
-          showAuthPage();
-        }
+        const ok = await tryRestoreSession();
+        if(ok){ await initAppAfterLogin(); checkPasswordAndRender(); }
+        else showAuthPage();
       })();
     });
     return;
   }
   if(!supabaseReady){ showAuthPage(); return; }
-  const {data: {session}} = await supabase.auth.getSession();
-  if(session){
-    currentUser = session.user;
-    await initAppAfterLogin();
-    checkPasswordAndRender();
-  } else {
-    showAuthPage();
-  }
+  const ok = await tryRestoreSession();
+  if(ok){ await initAppAfterLogin(); checkPasswordAndRender(); }
+  else showAuthPage();
 })();
 
 function updateCountdown(){
