@@ -980,6 +980,7 @@ textarea{min-height:80px}
     <div class="pw-icon">📖</div>
     <div class="pw-title">登录 6年之约</div>
     <div class="pw-subtitle">输入邮箱，验证码登录</div>
+    <div class="hidden" id="cachedEmailHint" style="margin-bottom:12px;padding:8px 12px;background:var(--brand-50);border-radius:var(--radius);font-size:13px;color:var(--brand-700);cursor:pointer;text-align:center;transition:all .15s" title="点击使用上次登录的邮箱"></div>
     <input type="email" class="pw-input" id="authEmail" placeholder="输入邮箱地址" autocomplete="email" style="letter-spacing:0">
     <div class="pw-code-row hidden" id="codeSection">
       <input type="text" class="pw-input pw-code-input" id="authCode" maxlength="8" placeholder="00000000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
@@ -1177,6 +1178,17 @@ function showAuthPage(){
   codeSection.classList.add('hidden');
   resendHint.classList.add('hidden');
   clearInterval(countdownTimer);
+
+  // Show cached email if available
+  const hint = document.getElementById('cachedEmailHint');
+  const saved = localStorage.getItem('nianzhiyue_last_email');
+  if(saved){
+    hint.textContent = '📧 ' + saved;
+    hint.classList.remove('hidden');
+  } else {
+    hint.classList.add('hidden');
+  }
+
   authPage.classList.remove('hidden');
   authEmail.focus();
 }
@@ -1195,6 +1207,16 @@ function startCountdown(){
     }
   }, 1000);
 }
+
+// Cached email click to auto-fill
+document.getElementById('cachedEmailHint').addEventListener('click', function(){
+  const saved = localStorage.getItem('nianzhiyue_last_email');
+  if(saved){
+    authEmail.value = saved;
+    authError.textContent = '';
+    this.classList.add('hidden');
+  }
+});
 
 authBtn.addEventListener('click', async function(){
   if(!supabaseReady){ authError.textContent = '网络加载失败，请刷新页面重试'; return; }
@@ -1243,6 +1265,7 @@ authBtn.addEventListener('click', async function(){
     // Login success
     currentUser = data.user;
     localStorage.setItem('nianzhiyue_user', JSON.stringify({id: data.user.id, email: email}));
+    localStorage.setItem('nianzhiyue_last_email', email);
     clearInterval(countdownTimer);
     await initAppAfterLogin();
     checkPasswordAndRender();
