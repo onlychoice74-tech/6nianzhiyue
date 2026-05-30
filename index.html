@@ -940,6 +940,8 @@ textarea{min-height:80px}
 }
 .pw-btn:hover{background:var(--brand-800)}
 .pw-btn:active{transform:scale(.97)}
+.pw-code-row{margin-top:10px}
+.pw-code-input{text-align:center;font-size:22px;letter-spacing:8px}
 </style>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -949,15 +951,16 @@ textarea{min-height:80px}
 <div class="pw-overlay" id="authPage">
   <div class="pw-box" style="max-width:360px">
     <div class="pw-icon">📖</div>
-    <div class="pw-title" id="authTitle">登录 6年之约</div>
-    <div class="pw-subtitle" id="authSubtitle">同步你的打卡数据</div>
-    <input type="email" class="pw-input" id="authEmail" placeholder="输入邮箱" autocomplete="email" style="letter-spacing:0">
-    <input type="password" class="pw-input" id="authPassword" maxlength="30" placeholder="输入密码" autocomplete="current-password" style="margin-top:10px;letter-spacing:0">
+    <div class="pw-title">登录 6年之约</div>
+    <div class="pw-subtitle">输入邮箱，验证码登录</div>
+    <input type="email" class="pw-input" id="authEmail" placeholder="输入邮箱地址" autocomplete="email" style="letter-spacing:0">
+    <div class="pw-code-row hidden" id="codeSection">
+      <input type="text" class="pw-input pw-code-input" id="authCode" maxlength="6" placeholder="000000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*">
+    </div>
     <div class="pw-error" id="authError"></div>
-    <button class="pw-btn" id="authBtn" style="width:100%">登 录</button>
-    <div style="margin-top:14px;font-size:12px;color:var(--text-muted)">
-      <span id="authSwitchText">没有账号？</span>
-      <a href="#" id="authSwitchLink" style="color:var(--brand-600);text-decoration:none;font-weight:600">注册</a>
+    <button class="pw-btn" id="authBtn" style="width:100%">发送验证码</button>
+    <div class="hidden" id="resendHint" style="margin-top:10px;font-size:12px;color:var(--text-muted);text-align:center">
+      <span id="resendCountdown">60</span> 秒后可重新发送
     </div>
   </div>
 </div>
@@ -1007,97 +1010,119 @@ const APP_VERSION = '2.0.0';
 })();
 
 // ── Supabase Client ──
-if(typeof window.supabase === 'undefined'){
-  document.getElementById('authError') && (document.getElementById('authError').textContent = '加载失败，请检查网络后刷新重试');
-  throw new Error('Supabase SDK load failed');
+let supabase = null;
+let supabaseReady = false;
+if(typeof window.supabase !== 'undefined'){
+  const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_FRUTpPxZ5OENXhVBdjhWYA_OE9HWH6V';
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  supabaseReady = true;
 }
-const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_FRUTpPxZ5OENXhVBdjhWYA_OE9HWH6V';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let authMode = 'login'; // 'login' | 'register'
-let currentUser = null;
-
-// ── Auth Logic ──
+// ── Auth Logic (OTP) ──
 const authPage = document.getElementById('authPage');
-const authTitle = document.getElementById('authTitle');
-const authSubtitle = document.getElementById('authSubtitle');
 const authEmail = document.getElementById('authEmail');
-const authPassword = document.getElementById('authPassword');
+const authCode = document.getElementById('authCode');
 const authError = document.getElementById('authError');
 const authBtn = document.getElementById('authBtn');
-const authSwitchText = document.getElementById('authSwitchText');
-const authSwitchLink = document.getElementById('authSwitchLink');
+const codeSection = document.getElementById('codeSection');
+const resendHint = document.getElementById('resendHint');
+const resendCountdown = document.getElementById('resendCountdown');
 
-function showAuth(mode){
-  authMode = mode;
+let authStep = 'email'; // 'email' | 'code'
+let countdownTimer = null;
+let currentUser = null;
+
+function showAuthPage(){
+  authStep = 'email';
+  authEmail.value = '';
+  authCode.value = '';
   authError.textContent = '';
-  if(mode === 'login'){
-    authTitle.textContent = '登录 6年之约';
-    authSubtitle.textContent = '同步你的打卡数据';
-    authBtn.textContent = '登 录';
-    authSwitchText.textContent = '没有账号？';
-    authSwitchLink.textContent = '注册';
-  } else {
-    authTitle.textContent = '注册 6年之约';
-    authSubtitle.textContent = '创建账号开始打卡';
-    authBtn.textContent = '注 册';
-    authSwitchText.textContent = '已有账号？';
-    authSwitchLink.textContent = '登录';
-  }
+  authBtn.textContent = '发送验证码';
+  authBtn.disabled = false;
+  codeSection.classList.add('hidden');
+  resendHint.classList.add('hidden');
+  clearInterval(countdownTimer);
   authPage.classList.remove('hidden');
+  authEmail.focus();
 }
 
-authSwitchLink.addEventListener('click', function(e){
-  e.preventDefault();
-  showAuth(authMode === 'login' ? 'register' : 'login');
-});
+function startCountdown(){
+  let sec = 60;
+  resendHint.classList.remove('hidden');
+  resendCountdown.textContent = sec;
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(()=>{
+    sec--;
+    resendCountdown.textContent = sec;
+    if(sec <= 0){
+      clearInterval(countdownTimer);
+      resendHint.classList.add('hidden');
+    }
+  }, 1000);
+}
 
 authBtn.addEventListener('click', async function(){
+  if(!supabaseReady){ authError.textContent = '网络加载失败，请刷新页面重试'; return; }
   const email = authEmail.value.trim();
-  const password = authPassword.value.trim();
-  if(!email || !password){ authError.textContent = '请填写邮箱和密码'; return; }
-  if(password.length < 6){ authError.textContent = '密码至少6位'; return; }
+  if(!email){ authError.textContent = '请输入邮箱地址'; return; }
+  if(!email.includes('@')){ authError.textContent = '邮箱格式不正确'; return; }
   authError.textContent = '';
-  authBtn.disabled = true;
-  authBtn.textContent = '处理中...';
 
-  let result;
-  if(authMode === 'register'){
-    result = await supabase.auth.signUp({email, password});
-  } else {
-    result = await supabase.auth.signInWithPassword({email, password});
-  }
-
-  authBtn.disabled = false;
-  authBtn.textContent = authMode === 'login' ? '登 录' : '注 册';
-
-  if(result.error){
-    authError.textContent = result.error.message;
-    return;
-  }
-
-  if(authMode === 'register'){
-    if(result.data.user){
-      // Create user_data row
-      await supabase.from('user_data').insert({
-        user_id: result.data.user.id,
-        data: {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0}
-      });
-      authError.textContent = '';
-      authError.style.color = 'var(--success)';
-      authError.textContent = '注册成功，请登录';
-      await supabase.auth.signOut();
-      showAuth('login');
-      authError.style.color = '#ef4444';
+  if(authStep === 'email'){
+    // Send OTP
+    authBtn.disabled = true;
+    authBtn.textContent = '发送中...';
+    const {error} = await supabase.auth.signInWithOtp({email});
+    if(error){
+      authBtn.disabled = false;
+      authBtn.textContent = '发送验证码';
+      if(error.message.includes('rate')){
+        authError.textContent = '发送太频繁，请稍后再试';
+      } else {
+        authError.textContent = error.message;
+      }
+      return;
     }
-    return;
+    authStep = 'code';
+    authBtn.textContent = '验 证 登 录';
+    authBtn.disabled = false;
+    codeSection.classList.remove('hidden');
+    authCode.focus();
+    startCountdown();
+    authError.style.color = 'var(--success)';
+    authError.textContent = '验证码已发送，请查收邮件';
+    authError.style.color = '#ef4444';
+  } else {
+    // Verify OTP
+    const code = authCode.value.trim();
+    if(!code || code.length < 6){ authError.textContent = '请输入6位验证码'; return; }
+    authBtn.disabled = true;
+    authBtn.textContent = '验证中...';
+    const {data, error} = await supabase.auth.verifyOtp({email, token: code, type: 'email'});
+    if(error){
+      authBtn.disabled = false;
+      authBtn.textContent = '验 证 登 录';
+      authError.textContent = error.message;
+      return;
+    }
+    // Login success
+    currentUser = data.user;
+    clearInterval(countdownTimer);
+    await initAppAfterLogin();
+    checkPasswordAndRender();
   }
+});
 
-  // Login success - initialize
-  currentUser = result.data.user;
-  await initAppAfterLogin();
-  checkPasswordAndRender();
+// Re-send: click countdown to resend
+resendHint.addEventListener('click', function(){
+  if(resendCountdown.textContent !== '0') return;
+  authStep = 'email';
+  authBtn.textContent = '发送验证码';
+  authBtn.disabled = false;
+  codeSection.classList.add('hidden');
+  resendHint.classList.add('hidden');
+  authError.textContent = '';
 });
 
 async function initAppAfterLogin(){
@@ -1136,7 +1161,7 @@ document.getElementById('logoutBtn').addEventListener('click', async function(){
   settingsOpen = false;
   document.querySelector('.app').style.display = 'none';
   authPage.classList.remove('hidden');
-  showAuth('login');
+  showAuthPage();
   document.querySelector('.app').style.display = '';
 });
 
@@ -2028,13 +2053,14 @@ function checkPasswordAndRender(){
 
 // ── Init ──
 (async function init(){
+  if(!supabaseReady){ showAuthPage(); return; }
   const {data: {session}} = await supabase.auth.getSession();
   if(session){
     currentUser = session.user;
     await initAppAfterLogin();
     checkPasswordAndRender();
   } else {
-    showAuth('login');
+    showAuthPage();
   }
 })();
 
