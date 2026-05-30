@@ -135,12 +135,12 @@ body{
 
 /* Hero Card */
 .hero-card{
-  background: linear-gradient(135deg, var(--brand-700), var(--brand-900));
-  color: #fff;
   border-radius: var(--radius-xl);
   padding: 28px 24px;
   position: relative;
   overflow: hidden;
+  color: #fff;
+  transition: background .4s ease;
 }
 .hero-card::after{
   content: '';
@@ -217,6 +217,160 @@ body{
   font-weight: 600;
 }
 
+/* Settings gear */
+.settings-trigger{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.15);
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: background .15s,transform .3s;
+  -webkit-tap-highlight-color: transparent;
+}
+.settings-trigger:hover{background:rgba(255,255,255,.25)}
+.settings-trigger:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.settings-trigger.open{transform:rotate(90deg)}
+
+/* Settings Panel */
+.settings-panel{
+  display: none;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-md);
+  flex-direction: column;
+  gap: 16px;
+  animation: slideDown .25s ease-out;
+}
+.settings-panel.open{display:flex}
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.settings-title{
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-row{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.settings-row label{
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+.settings-row input[type="number"]{
+  width: 80px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: center;
+}
+.settings-row input[type="number"]:focus{
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(76,110,245,.1);
+}
+.settings-row input[type="color"]{
+  width: 40px;
+  height: 36px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  padding: 2px;
+}
+.settings-row input[type="text"]{
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+}
+.settings-row input[type="text"]:focus{
+  outline: none;
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(76,110,245,.1);
+}
+.slogan-presets{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.slogan-preset{
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.slogan-preset:hover{border-color:var(--brand-400);color:var(--brand-700)}
+.slogan-preset:focus-visible{outline:2px solid var(--brand-400);outline-offset:2px}
+.slogan-preset.active{
+  background: var(--brand-50);
+  border-color: var(--brand-600);
+  color: var(--brand-700);
+  font-weight: 600;
+}
+.toggle-switch{
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle-switch input{
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider{
+  position: absolute;
+  cursor: pointer;
+  top: 0;left: 0;right: 0;bottom: 0;
+  background: var(--border);
+  border-radius: 12px;
+  transition: .2s;
+}
+.toggle-slider::before{
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .2s;
+}
+.toggle-switch input:checked + .toggle-slider{background:var(--brand-600)}
+.toggle-switch input:checked + .toggle-slider::before{transform:translateX(20px)}
+.toggle-switch input:focus-visible + .toggle-slider{outline:2px solid var(--brand-400);outline-offset:2px}
+
 /* Stats Row */
 .stats-row{
   display: grid;
@@ -229,10 +383,20 @@ body{
   padding: 16px 12px;
   text-align: center;
   box-shadow: var(--shadow-sm);
+  cursor: default;
+  position: relative;
 }
+.stat-card.clickable{cursor:pointer;transition:box-shadow .15s}
+.stat-card.clickable:hover{box-shadow:var(--shadow-md)}
 .stat-icon{font-size:20px;margin-bottom:4px}
 .stat-value{font-size:20px;font-weight:700;color:var(--text-primary)}
 .stat-label{font-size:11px;color:var(--text-muted);margin-top:2px}
+.stat-hint{
+  font-size: 10px;
+  color: var(--brand-500);
+  margin-top: 2px;
+  opacity: .7;
+}
 
 /* Form Elements */
 .form-group{margin-bottom:14px}
@@ -600,6 +764,17 @@ textarea{min-height:80px}
 .empty-state .empty-icon{font-size:48px;margin-bottom:12px}
 .empty-state .empty-text{font-size:14px}
 
+/* Footer */
+.app-footer{
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 20px 0;
+  cursor: pointer;
+  transition: color .15s;
+}
+.app-footer:hover{color:var(--brand-500)}
+
 /* Responsive */
 @media(max-width:400px){
   .hero-date{font-size:22px}
@@ -635,10 +810,156 @@ textarea{min-height:80px}
   .bp-cell.current{background:#0a2e1a}
   .habit-chip.checked{background:#1e3a5f}
 }
+
+/* Theme overrides */
+[data-theme="light"]{
+  --bg:#f8f9fc;
+  --surface:#fff;
+  --text-primary:#1e293b;
+  --text-secondary:#475569;
+  --text-muted:#94a3b8;
+  --border:#e2e8f0;
+  --brand-50:#f0f4ff;
+  --brand-100:#dbe4ff;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 1px 3px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.08);
+}
+[data-theme="dark"]{
+  --bg:#0f172a;
+  --surface:#1e293b;
+  --text-primary:#e2e8f0;
+  --text-secondary:#94a3b8;
+  --text-muted:#64748b;
+  --border:#334155;
+  --brand-50:#1e293b;
+  --brand-100:#1e3a5f;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.3);
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:0 4px 6px rgba(0,0,0,.4);
+  --shadow-lg:0 10px 15px rgba(0,0,0,.5);
+}
+[data-theme="dark"] textarea,[data-theme="dark"] input[type="text"],[data-theme="dark"] input[type="number"],[data-theme="dark"] .filter-select{
+  background:var(--surface);color:var(--text-primary);
+}
+[data-theme="dark"] .bp-cell.current{background:#0a2e1a}
+[data-theme="dark"] .habit-chip.checked{background:#1e3a5f}
+
+/* Hero card with background image */
+.hero-card.bg-image{
+  background-blend-mode: overlay;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+.hero-card.bg-image::before{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(.35);
+  border-radius: inherit;
+  z-index: 0;
+}
+.hero-card.bg-image > *{position:relative;z-index:1}
+
+/* Theme toggle */
+.theme-toggle{
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  margin-left: auto;
+}
+.theme-toggle:hover{border-color:var(--brand-400);background:var(--brand-50)}
+
+/* Password lock overlay */
+.pw-overlay{
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 20px;
+}
+.pw-overlay.hidden{display:none}
+.pw-box{
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+}
+.pw-icon{font-size:48px;margin-bottom:12px}
+.pw-title{font-size:18px;font-weight:700;color:var(--text-primary);margin-bottom:4px}
+.pw-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:20px}
+.pw-input{
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  text-align: center;
+  letter-spacing: 4px;
+  transition: border-color .15s;
+}
+.pw-input:focus{outline:none;border-color:var(--brand-500);box-shadow:0 0 0 3px rgba(76,110,245,.1)}
+.pw-error{color:#ef4444;font-size:12px;margin-top:8px;min-height:18px}
+.pw-btn{
+  margin-top: 12px;
+  padding: 10px 28px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--brand-700);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.pw-btn:hover{background:var(--brand-800)}
+.pw-btn:active{transform:scale(.97)}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
+<!-- Auth Page -->
+<div class="pw-overlay" id="authPage">
+  <div class="pw-box" style="max-width:360px">
+    <div class="pw-icon">📖</div>
+    <div class="pw-title" id="authTitle">登录 6年之约</div>
+    <div class="pw-subtitle" id="authSubtitle">同步你的打卡数据</div>
+    <input type="email" class="pw-input" id="authEmail" placeholder="输入邮箱" autocomplete="email" style="letter-spacing:0">
+    <input type="password" class="pw-input" id="authPassword" maxlength="30" placeholder="输入密码" autocomplete="current-password" style="margin-top:10px;letter-spacing:0">
+    <div class="pw-error" id="authError"></div>
+    <button class="pw-btn" id="authBtn" style="width:100%">登 录</button>
+    <div style="margin-top:14px;font-size:12px;color:var(--text-muted)">
+      <span id="authSwitchText">没有账号？</span>
+      <a href="#" id="authSwitchLink" style="color:var(--brand-600);text-decoration:none;font-weight:600">注册</a>
+    </div>
+  </div>
+</div>
+
+<!-- App -->
 <div class="app">
   <nav class="nav">
     <span class="nav-brand">6年之约</span>
@@ -649,19 +970,202 @@ textarea{min-height:80px}
       <button class="nav-tab" data-page="diary">日记回顾</button>
       <button class="nav-tab" data-page="blueprint">六年蓝图</button>
     </div>
+    <button class="theme-toggle" id="themeToggle" title="切换深色/浅色模式">🌓</button>
+    <button class="theme-toggle" id="logoutBtn" title="退出登录" style="font-size:14px;width:auto;border-radius:8px;padding:0 10px;margin-left:4px">退出</button>
   </nav>
 
   <main class="main" id="mainContent"></main>
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="pw-overlay hidden" id="pwOverlay">
+  <div class="pw-box">
+    <div class="pw-icon">🔒</div>
+    <div class="pw-title">访问密码</div>
+    <div class="pw-subtitle">请输入密码以继续</div>
+    <input type="password" class="pw-input" id="pwInput" maxlength="20" placeholder="输入密码" autocomplete="off">
+    <div class="pw-error" id="pwError"></div>
+    <button class="pw-btn" id="pwSubmitBtn">确认</button>
+  </div>
+</div>
 
 <script>
-// ── Data Layer ──
-const START_DATE = new Date('2026-05-28T00:00:00');
-const TARGET_DATE = new Date('2032-05-28T00:00:00');
-const TARGET_AMOUNT = 1000000;
+// ── Supabase Client ──
+const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_FRUTpPxZ5OENXhVBdjhWYA_OE9HWH6V';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+let authMode = 'login'; // 'login' | 'register'
+let currentUser = null;
+
+// ── Auth Logic ──
+const authPage = document.getElementById('authPage');
+const authTitle = document.getElementById('authTitle');
+const authSubtitle = document.getElementById('authSubtitle');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const authError = document.getElementById('authError');
+const authBtn = document.getElementById('authBtn');
+const authSwitchText = document.getElementById('authSwitchText');
+const authSwitchLink = document.getElementById('authSwitchLink');
+
+function showAuth(mode){
+  authMode = mode;
+  authError.textContent = '';
+  if(mode === 'login'){
+    authTitle.textContent = '登录 6年之约';
+    authSubtitle.textContent = '同步你的打卡数据';
+    authBtn.textContent = '登 录';
+    authSwitchText.textContent = '没有账号？';
+    authSwitchLink.textContent = '注册';
+  } else {
+    authTitle.textContent = '注册 6年之约';
+    authSubtitle.textContent = '创建账号开始打卡';
+    authBtn.textContent = '注 册';
+    authSwitchText.textContent = '已有账号？';
+    authSwitchLink.textContent = '登录';
+  }
+  authPage.classList.remove('hidden');
+}
+
+authSwitchLink.addEventListener('click', function(e){
+  e.preventDefault();
+  showAuth(authMode === 'login' ? 'register' : 'login');
+});
+
+authBtn.addEventListener('click', async function(){
+  const email = authEmail.value.trim();
+  const password = authPassword.value.trim();
+  if(!email || !password){ authError.textContent = '请填写邮箱和密码'; return; }
+  if(password.length < 6){ authError.textContent = '密码至少6位'; return; }
+  authError.textContent = '';
+  authBtn.disabled = true;
+  authBtn.textContent = '处理中...';
+
+  let result;
+  if(authMode === 'register'){
+    result = await supabase.auth.signUp({email, password});
+  } else {
+    result = await supabase.auth.signInWithPassword({email, password});
+  }
+
+  authBtn.disabled = false;
+  authBtn.textContent = authMode === 'login' ? '登 录' : '注 册';
+
+  if(result.error){
+    authError.textContent = result.error.message;
+    return;
+  }
+
+  if(authMode === 'register'){
+    if(result.data.user){
+      // Create user_data row
+      await supabase.from('user_data').insert({
+        user_id: result.data.user.id,
+        data: {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0}
+      });
+      authError.textContent = '';
+      authError.style.color = 'var(--success)';
+      authError.textContent = '注册成功，请登录';
+      await supabase.auth.signOut();
+      showAuth('login');
+      authError.style.color = '#ef4444';
+    }
+    return;
+  }
+
+  // Login success - initialize
+  currentUser = result.data.user;
+  await initAppAfterLogin();
+  checkPasswordAndRender();
+});
+
+async function initAppAfterLogin(){
+  authPage.classList.add('hidden');
+  // Load data from Supabase
+  const {data, error} = await supabase.from('user_data').select('data').eq('user_id', currentUser.id).single();
+  if(data && data.data){
+    appData = {...{targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0}, ...data.data};
+  } else {
+    appData = {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0};
+  }
+  // Also cache to localStorage for offline
+  saveLocal();
+}
+
+async function syncToCloud(){
+  if(!currentUser) return;
+  await supabase.from('user_data').upsert({
+    user_id: currentUser.id,
+    data: appData,
+    updated_at: new Date().toISOString()
+  }, {onConflict: 'user_id'});
+  saveLocal();
+}
+
+function saveLocal(){
+  localStorage.setItem('nianzhiyue_data', JSON.stringify(appData));
+}
+
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', async function(){
+  await supabase.auth.signOut();
+  currentUser = null;
+  appData = {targetDeposit:1000000, checkins:{}, totalDeposit:0, streak:0, totalCount:0};
+  settings = loadSettings();
+  settingsOpen = false;
+  document.querySelector('.app').style.display = 'none';
+  authPage.classList.remove('hidden');
+  showAuth('login');
+  document.querySelector('.app').style.display = '';
+});
+
+// ── Settings Layer ──
+const DEFAULT_SETTINGS = {
+  startYear: 2026,
+  startMonth: 5,
+  startDay: 28,
+  endYear: 2032,
+  endMonth: 5,
+  endDay: 28,
+  heroColor: '#4263eb',
+  heroBgImage: '',
+  slogan: '相信复利的力量，做时间的朋友',
+  footerText: '加油(ง •̀_•́)ง #六年之约',
+  hideDeposit: false,
+  passwordEnabled: false,
+  password: '',
+  theme: 'auto'
+};
+
+const SLOGAN_PRESETS = [
+  '自律+努力=遇见更好的自己',
+  '种一棵树的时间最好是十年前，其次是现在',
+  '看清生活的真相后，依然热爱生活'
+];
+
+function loadSettings(){
+  const raw = localStorage.getItem('nianzhiyue_settings');
+  if(raw){
+    try{return {...DEFAULT_SETTINGS, ...JSON.parse(raw)}}catch(e){}
+  }
+  return {...DEFAULT_SETTINGS};
+}
+
+function saveSettings(s){
+  localStorage.setItem('nianzhiyue_settings', JSON.stringify(s));
+}
+
+let settings = loadSettings();
+
+function getStartDate(){
+  return new Date(settings.startYear, settings.startMonth-1, settings.startDay);
+}
+function getEndDate(){
+  return new Date(settings.endYear, settings.endMonth-1, settings.endDay);
+}
+
+// ── Data Layer ──
 function loadData(){
   const raw = localStorage.getItem('nianzhiyue_data');
   if(raw){
@@ -677,17 +1181,33 @@ function loadData(){
 }
 
 function saveData(data){
-  localStorage.setItem('nianzhiyue_data', JSON.stringify(data));
+  appData = data;
+  saveLocal();
+  syncToCloud();
 }
 
-let appData = loadData();
+// appData initialized after login
+let appData = {
+  targetDeposit: 1000000,
+  checkins: {},
+  totalDeposit: 0,
+  streak: 0,
+  totalCount: 0
+};
 
 function todayStr(){
   const d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-function formatMoney(n){return '¥'+Number(n).toLocaleString('zh-CN')}
+function formatMoney(n){
+  if(settings.hideDeposit) return '¥****';
+  return '¥'+Number(n).toLocaleString('zh-CN');
+}
+
+function formatMoneyFull(n){
+  return '¥'+Number(n).toLocaleString('zh-CN');
+}
 
 // ── Router ──
 let currentPage = 'home';
@@ -721,8 +1241,12 @@ function renderPage(){
 }
 
 // ── Home Page ──
+let settingsOpen = false;
+
 function renderHome(){
   const now = new Date();
+  const START_DATE = getStartDate();
+  const TARGET_DATE = getEndDate();
   const totalMs = TARGET_DATE - START_DATE;
   const elapsedMs = now - START_DATE;
   const progress = Math.min(100, Math.max(0, (elapsedMs / totalMs) * 100));
@@ -735,11 +1259,18 @@ function renderHome(){
   const months = Math.floor((diffDays % 365) / 30);
   const days = diffDays % 30;
 
+  const endDateStr = settings.endYear+'.'+String(settings.endMonth).padStart(2,'0')+'.'+String(settings.endDay).padStart(2,'0');
+
+  const bgStyle = settings.heroBgImage
+    ? `background:linear-gradient(135deg, ${settings.heroColor}, ${adjustColor(settings.heroColor, -30)}), url(${escapeHtml(settings.heroBgImage)}) center/cover`
+    : `background:linear-gradient(135deg, ${settings.heroColor}, ${adjustColor(settings.heroColor, -30)})`;
+
   mainEl.innerHTML = `
-    <div class="hero-card">
+    <div class="hero-card${settings.heroBgImage?' bg-image':''}" style="${bgStyle}">
+      <button class="settings-trigger ${settingsOpen?'open':''}" id="settingsTrigger" title="自定义设置">⚙</button>
       <div class="hero-label">倒计时</div>
-      <div class="hero-date">2032.05.28</div>
-      <div class="hero-slogan">每一天，都比昨天好一点点</div>
+      <div class="hero-date">${endDateStr}</div>
+      <div class="hero-slogan">${escapeHtml(settings.slogan)}</div>
       <div class="hero-countdown">
         <div class="countdown-item"><div class="countdown-num">${years}</div><div class="countdown-label">年</div></div>
         <div class="countdown-item"><div class="countdown-num">${months}</div><div class="countdown-label">月</div></div>
@@ -754,13 +1285,204 @@ function renderHome(){
         <span class="hero-progress-text">${progress.toFixed(1)}%</span>
       </div>
     </div>
+
+    <div class="settings-panel ${settingsOpen?'open':''}" id="settingsPanel">
+      <div class="settings-title">⚙ 自定义设置</div>
+
+      <div class="settings-row">
+        <label>起始日期</label>
+        <input type="number" id="setStartYear" value="${settings.startYear}" min="2024" max="2124" style="width:70px" title="年">
+        <span style="font-size:12px;color:var(--text-muted)">年</span>
+        <input type="number" id="setStartMonth" value="${settings.startMonth}" min="1" max="12" style="width:55px" title="月">
+        <span style="font-size:12px;color:var(--text-muted)">月</span>
+        <input type="number" id="setStartDay" value="${settings.startDay}" min="1" max="31" style="width:55px" title="日">
+        <span style="font-size:12px;color:var(--text-muted)">日</span>
+      </div>
+
+      <div class="settings-row">
+        <label>目标日期</label>
+        <input type="number" id="setEndYear" value="${settings.endYear}" min="2024" max="2124" style="width:70px" title="年">
+        <span style="font-size:12px;color:var(--text-muted)">年</span>
+        <input type="number" id="setEndMonth" value="${settings.endMonth}" min="1" max="12" style="width:55px" title="月">
+        <span style="font-size:12px;color:var(--text-muted)">月</span>
+        <input type="number" id="setEndDay" value="${settings.endDay}" min="1" max="31" style="width:55px" title="日">
+        <span style="font-size:12px;color:var(--text-muted)">日</span>
+      </div>
+
+      <div class="settings-row">
+        <label>卡片颜色</label>
+        <input type="color" id="setHeroColor" value="${settings.heroColor}">
+        <span style="font-size:12px;color:var(--text-muted)">点击色块选择</span>
+      </div>
+
+      <div class="settings-row">
+        <label>背景图片</label>
+        <input type="text" id="setHeroBgImage" value="${escapeHtml(settings.heroBgImage)}" placeholder="输入图片URL...">
+        <button class="btn btn-sm btn-outline" onclick="clearBgImage()" style="flex-shrink:0">清除</button>
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start">
+        <span style="font-size:11px;color:var(--text-muted)">支持网络图片URL，如：https://example.com/image.jpg</span>
+      </div>
+
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start">
+        <label>自定义标语</label>
+        <input type="text" id="setSlogan" value="${escapeHtml(settings.slogan)}" placeholder="输入你的标语...">
+        <div class="slogan-presets" id="sloganPresets">
+          ${SLOGAN_PRESETS.map(s=>`<button class="slogan-preset ${settings.slogan===s?'active':''}" data-slogan="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="settings-row">
+        <label>隐藏存款</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="setHideDeposit" ${settings.hideDeposit?'checked':''}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:12px;color:var(--text-muted)">开启后金额显示为 ¥****</span>
+      </div>
+
+      <div class="settings-row">
+        <label>底部文字</label>
+        <input type="text" id="setFooterText" value="${escapeHtml(settings.footerText)}" placeholder="自定义底部文字...">
+      </div>
+
+      <div class="settings-row">
+        <label>访问密码</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="setPasswordEnabled" ${settings.passwordEnabled?'checked':''}>
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:12px;color:var(--text-muted)">开启后每次打开需输入密码</span>
+      </div>
+      <div class="settings-row" id="passwordInputRow" style="${settings.passwordEnabled?'':'display:none'}">
+        <label>设置密码</label>
+        <input type="text" id="setPassword" value="${escapeHtml(settings.password)}" placeholder="设置4-20位密码" maxlength="20" style="flex:1;min-width:120px">
+      </div>
+
+      <div class="settings-row">
+        <label>主题模式</label>
+        <select class="filter-select" id="setTheme" style="width:auto">
+          <option value="auto" ${settings.theme==='auto'?'selected':''}>跟随系统</option>
+          <option value="light" ${settings.theme==='light'?'selected':''}>浅色模式</option>
+          <option value="dark" ${settings.theme==='dark'?'selected':''}>深色模式</option>
+        </select>
+      </div>
+
+      <button class="btn btn-primary" id="saveSettingsBtn" style="margin-top:4px">💾 保存设置</button>
+    </div>
+
     <div class="stats-row">
       <div class="stat-card"><div class="stat-icon">🔥</div><div class="stat-value">${appData.streak}</div><div class="stat-label">连续打卡天数</div></div>
-      <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">${formatMoney(appData.totalDeposit)}</div><div class="stat-label">累计存款</div></div>
       <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value">${appData.totalCount}</div><div class="stat-label">累计打卡次数</div></div>
+      <div class="stat-card clickable" id="depositCard" title="${settings.hideDeposit?'点击显示金额':'点击隐藏金额'}">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">${formatMoney(appData.totalDeposit)}</div>
+        <div class="stat-label">累计存款</div>
+        ${settings.hideDeposit?'<div class="stat-hint">点击查看</div>':''}
+      </div>
     </div>
-    <div style="text-align:center;font-size:12px;color:var(--text-muted);padding:20px 0">加油(ง •̀_•́)ง #六年之约</div>
+
+    <div class="app-footer" id="footerText">${escapeHtml(settings.footerText)}</div>
   `;
+
+  // Settings toggle
+  document.getElementById('settingsTrigger').addEventListener('click',()=>{
+    settingsOpen = !settingsOpen;
+    renderHome();
+  });
+
+  if(settingsOpen){
+    // Slogan presets
+    document.getElementById('sloganPresets').addEventListener('click',function(e){
+      const btn = e.target.closest('.slogan-preset');
+      if(!btn) return;
+      document.getElementById('setSlogan').value = btn.dataset.slogan;
+      this.querySelectorAll('.slogan-preset').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+
+    // Password toggle
+    document.getElementById('setPasswordEnabled').addEventListener('change',function(){
+      document.getElementById('passwordInputRow').style.display = this.checked ? '' : 'none';
+    });
+
+    // Save settings
+    document.getElementById('saveSettingsBtn').addEventListener('click',()=>{
+      const sy = parseInt(document.getElementById('setStartYear').value);
+      const sm = parseInt(document.getElementById('setStartMonth').value);
+      const sd = parseInt(document.getElementById('setStartDay').value);
+      const ey = parseInt(document.getElementById('setEndYear').value);
+      const em = parseInt(document.getElementById('setEndMonth').value);
+      const ed = parseInt(document.getElementById('setEndDay').value);
+
+      if(sy<2024||sy>2124||ey<2024||ey>2124){showToast('年份需在2024-2124之间');return;}
+      if(sm<1||sm>12||em<1||em>12){showToast('月份需在1-12之间');return;}
+      if(sd<1||sd>31||ed<1||ed>31){showToast('日期需在1-31之间');return;}
+
+      const startD = new Date(sy, sm-1, sd);
+      const endD = new Date(ey, em-1, ed);
+      if(endD <= startD){showToast('目标日期必须晚于起始日期');return;}
+
+      settings.startYear = sy;
+      settings.startMonth = sm;
+      settings.startDay = sd;
+      settings.endYear = ey;
+      settings.endMonth = em;
+      settings.endDay = ed;
+      settings.heroColor = document.getElementById('setHeroColor').value;
+      settings.heroBgImage = document.getElementById('setHeroBgImage').value.trim();
+      settings.slogan = document.getElementById('setSlogan').value.trim() || DEFAULT_SETTINGS.slogan;
+      settings.hideDeposit = document.getElementById('setHideDeposit').checked;
+      settings.footerText = document.getElementById('setFooterText').value.trim() || DEFAULT_SETTINGS.footerText;
+      settings.passwordEnabled = document.getElementById('setPasswordEnabled').checked;
+      settings.password = document.getElementById('setPassword').value.trim();
+      settings.theme = document.getElementById('setTheme').value;
+
+      saveSettings(settings);
+      settingsOpen = false;
+      applyTheme();
+      showToast('设置已保存','success');
+      renderHome();
+    });
+  }
+
+  // Deposit card click to toggle
+  const depositCard = document.getElementById('depositCard');
+  if(depositCard){
+    depositCard.addEventListener('click',()=>{
+      settings.hideDeposit = !settings.hideDeposit;
+      saveSettings(settings);
+      renderHome();
+    });
+  }
+
+  // Footer click to edit
+  document.getElementById('footerText').addEventListener('click',()=>{
+    settingsOpen = true;
+    renderHome();
+  });
+}
+
+function adjustColor(hex, amount){
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+  const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+  const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+  return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function clearBgImage(){
+  document.getElementById('setHeroBgImage').value = '';
+}
+
+function applyTheme(){
+  const theme = settings.theme || 'auto';
+  const html = document.documentElement;
+  if(theme === 'auto'){
+    html.removeAttribute('data-theme');
+  } else {
+    html.setAttribute('data-theme', theme);
+  }
 }
 
 // ── Checkin Page ──
@@ -868,7 +1590,6 @@ function submitCheckin(){
   appData.totalDeposit = deposit;
   appData.totalCount = Object.keys(appData.checkins).length;
 
-  // calc streak
   let streak = 0;
   const d = new Date();
   for(let i=0;i<1000;i++){
@@ -890,13 +1611,13 @@ function renderProgress(){
   const remaining = Math.max(0, target - current);
   const progressPct = Math.min(100, (current/target)*100);
 
-  // remaining months
   const now = new Date();
+  const TARGET_DATE = getEndDate();
   const remainMs = TARGET_DATE - now;
   const remainMonths = Math.max(1, Math.ceil(remainMs / (30*86400000)));
   const suggestedMonthly = Math.ceil(remaining / remainMonths);
 
-  // heatmap: from START_DATE to today
+  const START_DATE = getStartDate();
   let heatmapCells = '';
   const hmStart = new Date(START_DATE);
   const hmEnd = new Date();
@@ -917,7 +1638,6 @@ function renderProgress(){
     heatmapCells += `<div class="heatmap-cell${lvl?' l'+lvl:''}" title="${s}${lvl?' · 已打卡':''}"></div>`;
   }
 
-  // monthly stats: from START_DATE to now
   let monthlyRows = '';
   const startMonth = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
   const endMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -936,7 +1656,7 @@ function renderProgress(){
       if(appData.checkins[s]){checkedDays++;monthEndDeposit=appData.checkins[s].deposit}
     }
     const rate = daysInMonth>0?Math.round(checkedDays/daysInMonth*100):0;
-    monthlyRows += `<tr><td>${yr}-${String(mo).padStart(2,'0')}</td><td>${checkedDays}/${daysInMonth}</td><td>${rate}%</td><td>${formatMoney(monthEndDeposit)}</td></tr>`;
+    monthlyRows += `<tr><td>${yr}-${String(mo).padStart(2,'0')}</td><td>${checkedDays}/${daysInMonth}</td><td>${rate}%</td><td>${formatMoneyFull(monthEndDeposit)}</td></tr>`;
   }
 
   mainEl.innerHTML = `
@@ -945,14 +1665,14 @@ function renderProgress(){
         <span class="bp-title">💰 存款进度 · 目标</span>
         <button class="btn btn-sm btn-outline" onclick="adjustTarget()">⚙ 调整目标</button>
       </div>
-      <div style="font-size:26px;font-weight:700;color:var(--brand-700);margin-top:8px">${formatMoney(target)}</div>
+      <div style="font-size:26px;font-weight:700;color:var(--brand-700);margin-top:8px">${formatMoneyFull(target)}</div>
       <div class="progress-bar-wrap">
         <div class="progress-bar-fill" style="width:${progressPct}%"></div>
       </div>
       <div class="progress-stats">
-        <div class="progress-stat"><div class="progress-stat-val">${formatMoney(current)}</div><div class="progress-stat-lbl">当前存款</div></div>
-        <div class="progress-stat"><div class="progress-stat-val">${formatMoney(remaining)}</div><div class="progress-stat-lbl">距离目标</div></div>
-        <div class="progress-stat"><div class="progress-stat-val">${formatMoney(suggestedMonthly)}</div><div class="progress-stat-lbl">建议月存</div></div>
+        <div class="progress-stat"><div class="progress-stat-val">${formatMoneyFull(current)}</div><div class="progress-stat-lbl">当前存款</div></div>
+        <div class="progress-stat"><div class="progress-stat-val">${formatMoneyFull(remaining)}</div><div class="progress-stat-lbl">距离目标</div></div>
+        <div class="progress-stat"><div class="progress-stat-val">${formatMoneyFull(suggestedMonthly)}</div><div class="progress-stat-lbl">建议月存</div></div>
       </div>
     </div>
 
@@ -1038,7 +1758,7 @@ function renderDiary(){
           <span class="diary-date">${date}</span>
           <span class="diary-mood">${moodEmojis[data.mood]||'😐'}</span>
         </div>
-        <div class="diary-deposit">💰 ${formatMoney(data.deposit)}</div>
+        <div class="diary-deposit">💰 ${formatMoneyFull(data.deposit)}</div>
         <div class="diary-tags">
           ${data.happy?'<span class="diary-tag">🌟 开心事</span>':''}
           ${data.tough?'<span class="diary-tag">💪 挑战</span>':''}
@@ -1075,7 +1795,7 @@ function viewDiaryDetail(date){
         <span style="font-size:18px;font-weight:700">${date}</span>
         <span style="font-size:24px">${moodLabels[data.mood]||'😐'}</span>
       </div>
-      <div style="margin-top:14px">💰 存款：<strong>${formatMoney(data.deposit)}</strong></div>
+      <div style="margin-top:14px">💰 存款：<strong>${formatMoneyFull(data.deposit)}</strong></div>
       ${data.happy?`<div style="margin-top:14px"><div class="form-label">🌟 一件开心/积极的事</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.happy)}</p></div>`:''}
       ${data.tough?`<div style="margin-top:14px"><div class="form-label">💪 一件难过/挑战的事</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.tough)}</p></div>`:''}
       ${data.think?`<div style="margin-top:14px"><div class="form-label">💭 今日思考</div><p style="font-size:14px;color:var(--text-primary);line-height:1.8">${escapeHtml(data.think)}</p></div>`:''}
@@ -1106,7 +1826,8 @@ function exportData(){
 
 // ── Blueprint Page ──
 function renderBlueprint(){
-  const startDate = new Date('2026-05-01');
+  const START_DATE = getStartDate();
+  const startDate = new Date(START_DATE.getFullYear(), START_DATE.getMonth(), 1);
   let cells = '';
   const today = todayStr();
 
@@ -1165,9 +1886,71 @@ function renderBlueprint(){
 }
 
 // ── Init ──
-renderHome();
 
-// Auto-refresh countdown on home page
+// Apply theme
+applyTheme();
+
+// Theme toggle button
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const themes = ['auto', 'light', 'dark'];
+  const icons = ['🌓', '☀️', '🌙'];
+  const current = settings.theme || 'auto';
+  const idx = themes.indexOf(current);
+  const next = themes[(idx + 1) % 3];
+  settings.theme = next;
+  saveSettings(settings);
+  applyTheme();
+  document.getElementById('themeToggle').textContent = icons[(idx + 1) % 3];
+  showToast(next==='auto'?'已切换为跟随系统':next==='light'?'已切换为浅色模式':'已切换为深色模式','success');
+});
+// Set initial theme icon
+(function(){
+  const icons = {'auto':'🌓','light':'☀️','dark':'🌙'};
+  document.getElementById('themeToggle').textContent = icons[settings.theme||'auto'];
+})();
+
+// Password lock - called after auth
+function checkPasswordAndRender(){
+  if(settings.passwordEnabled && settings.password && !sessionStorage.getItem('nianzhiyue_unlocked')){
+    const overlay = document.getElementById('pwOverlay');
+    const pwInput = document.getElementById('pwInput');
+    const pwError = document.getElementById('pwError');
+    overlay.classList.remove('hidden');
+
+    function tryUnlock(){
+      if(pwInput.value === settings.password){
+        sessionStorage.setItem('nianzhiyue_unlocked', '1');
+        overlay.classList.add('hidden');
+        renderHome();
+      } else {
+        pwError.textContent = '密码错误，请重试';
+        pwInput.value = '';
+        pwInput.focus();
+      }
+    }
+
+    document.getElementById('pwSubmitBtn').addEventListener('click', tryUnlock);
+    pwInput.addEventListener('keydown', function(e){
+      if(e.key === 'Enter') tryUnlock();
+    });
+    pwInput.focus();
+  } else {
+    renderHome();
+  }
+}
+
+// ── Init ──
+(async function init(){
+  const {data: {session}} = await supabase.auth.getSession();
+  if(session){
+    currentUser = session.user;
+    await initAppAfterLogin();
+    checkPasswordAndRender();
+  } else {
+    showAuth('login');
+  }
+})();
+
 setInterval(()=>{
   if(currentPage==='home') renderHome();
 },1000);
