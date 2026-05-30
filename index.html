@@ -943,7 +943,7 @@ textarea{min-height:80px}
 .pw-code-row{margin-top:10px}
 .pw-code-input{text-align:center;font-size:22px;letter-spacing:8px}
 </style>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 </head>
 <body>
 
@@ -1009,15 +1009,122 @@ const APP_VERSION = '2.0.0';
   localStorage.setItem('nianzhiyue_version', APP_VERSION);
 })();
 
-// ── Supabase Client ──
-let supabase = null;
-let supabaseReady = false;
-if(typeof window.supabase !== 'undefined'){
-  const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_FRUTpPxZ5OENXhVBdjhWYA_OE9HWH6V';
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  supabaseReady = true;
+// ── Supabase API (native fetch, zero external dependency) ──
+const SUPABASE_URL = 'https://qnqldxoununafagxejum.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFucWxkeG91bnVuYWZhZ3hlanVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwOTI0NDIsImV4cCI6MjA5NTY2ODQ0Mn0.XHAB4piP_A6yatZouIKNmZWjdDBwDRzsW3ZTVFrjjso';
+let accessToken = null;
+let refreshToken = null;
+
+async function supabaseFetch(path, options = {}) {
+  const headers = { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...options.headers };
+  if (accessToken) headers['Authorization'] = 'Bearer ' + accessToken;
+  try {
+    const res = await fetch(SUPABASE_URL + path, { ...options, headers });
+    if (res.status === 204) return { error: null };
+    const data = await res.json();
+    if (!res.ok) return { error: { message: data.msg || data.message || ('HTTP ' + res.status) } };
+    return { data, error: null };
+  } catch(e) {
+    return { error: { message: '网络请求失败，请检查网络连接' } };
+  }
 }
+
+function saveSession(token, refresh) {
+  accessToken = token;
+  refreshToken = refresh || null;
+  if (token) {
+    localStorage.setItem('nianzhiyue_token', token);
+    if (refresh) localStorage.setItem('nianzhiyue_refresh', refresh);
+  }
+}
+
+function clearSession() {
+  accessToken = null;
+  refreshToken = null;
+  localStorage.removeItem('nianzhiyue_token');
+  localStorage.removeItem('nianzhiyue_refresh');
+}
+
+// Load cached session on init
+(function() {
+  const t = localStorage.getItem('nianzhiyue_token');
+  if (t) { accessToken = t; refreshToken = localStorage.getItem('nianzhiyue_refresh') || null; }
+})();
+
+const supabase = {
+  auth: {
+    async signInWithOtp({ email }) {
+      return supabaseFetch('/auth/v1/otp', {
+        method: 'POST',
+        body: JSON.stringify({ email, create_user: true })
+      });
+    },
+    async verifyOtp({ email, token, type }) {
+      const result = await supabaseFetch('/auth/v1/verify', {
+        method: 'POST',
+        body: JSON.stringify({ email, token, type })
+      });
+      if (result.data && result.data.access_token) {
+        saveSession(result.data.access_token, result.data.refresh_token);
+        result.data.user = result.data.user || { id: result.data.user_id, email };
+      }
+      return result;
+    },
+    async signOut() {
+      const result = await supabaseFetch('/auth/v1/logout', { method: 'POST' });
+      clearSession();
+      return result;
+    },
+    async getSession() {
+      if (!accessToken) return { data: { session: null } };
+      const result = await supabaseFetch('/auth/v1/user');
+      if (result.error) {
+        // Try refresh
+        if (refreshToken) {
+          const refreshResult = await supabaseFetch('/auth/v1/token?grant_type=refresh_token', {
+            method: 'POST',
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+          if (!refreshResult.error && refreshResult.data && refreshResult.data.access_token) {
+            saveSession(refreshResult.data.access_token, refreshResult.data.refresh_token);
+            const retry = await supabaseFetch('/auth/v1/user');
+            if (!retry.error && retry.data) return { data: { session: { user: retry.data } } };
+          }
+        }
+        clearSession();
+        return { data: { session: null } };
+      }
+      return { data: { session: { user: result.data } } };
+    }
+  },
+  from(table) {
+    const self = this;
+    return {
+      select(cols) {
+        return {
+          eq(field, value) {
+            return {
+              async single() {
+                return supabaseFetch('/rest/v1/' + table + '?select=' + cols + '&' + field + '=eq.' + encodeURIComponent(value), {
+                  headers: { 'Accept': 'application/vnd.pgrst.object+json' }
+                });
+              }
+            };
+          }
+        };
+      },
+      async upsert(body, opts) {
+        return supabaseFetch('/rest/v1/' + table, {
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: { 'Prefer': 'resolution=merge-duplicates', 'Return': 'minimal' }
+        });
+      }
+    };
+  }
+};
+
+const supabaseReady = true;
 
 // ── Auth Logic (OTP) ──
 const authPage = document.getElementById('authPage');
